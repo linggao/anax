@@ -10,6 +10,7 @@ import (
 	"github.com/open-horizon/anax/cli/dev"
 	"github.com/open-horizon/anax/config"
 	"github.com/open-horizon/anax/container"
+	"github.com/open-horizon/anax/cutil"
 	"github.com/open-horizon/anax/i18n"
 	"github.com/open-horizon/anax/resource"
 	"io/ioutil"
@@ -471,6 +472,12 @@ func putFile(url string, org string, metadata *cssFileMeta, file []byte) error {
 	// get message printer
 	msgPrinter := i18n.GetMessagePrinter()
 
+	// encode the url so that it can accept unicode
+	urlUnicode, err := cutil.EncodeUrl(url)
+	if err != nil {
+		return errors.New(msgPrinter.Sprintf("Unable to encode url. %v", err))
+	}
+
 	// Tell the user what API we're about to use.
 	apiMsg := http.MethodPut + " " + url
 	cliutils.Verbose(apiMsg)
@@ -490,7 +497,7 @@ func putFile(url string, org string, metadata *cssFileMeta, file []byte) error {
 
 	// First put the metadata into the CSS.
 	httpClient := cliutils.GetHTTPClient(0)
-	req, err := http.NewRequest(http.MethodPut, url, requestBody)
+	req, err := http.NewRequest(http.MethodPut, urlUnicode, requestBody)
 	if err != nil {
 		return errors.New(msgPrinter.Sprintf("unable to create CSS file PUT request for %v, error %v", *metadata, err))
 	}

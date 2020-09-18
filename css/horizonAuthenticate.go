@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -453,12 +454,19 @@ func (auth *HorizonAuthenticate) verifyNodeIdentity(id string, orgId string, app
 }
 
 // Common function to invoke the Exchange API when checking for valid users and nodes.
-func (auth *HorizonAuthenticate) invokeExchange(url string, user string, pw string) (*http.Response, error) {
+func (auth *HorizonAuthenticate) invokeExchange(urlPath string, user string, pw string) (*http.Response, error) {
 
-	apiMsg := fmt.Sprintf("%v %v", http.MethodGet, url)
+	apiMsg := fmt.Sprintf("%v %v", http.MethodGet, urlPath)
+
+	// encode the url so that it can accept unicode
+	urlObj, err := url.Parse(urlPath)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("malformed URL: %v. %v", urlPath, err))
+	}
+	urlObj.RawQuery = urlObj.Query().Encode()
 
 	// Create an outgoing HTTP request for the exchange.
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, urlObj.String(), nil)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("unable to create HTTP request for %v, error %v", apiMsg, err))
 	}

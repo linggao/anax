@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/rest"
 	"math"
 	"net"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -791,4 +792,15 @@ func FloatFromQuantity(quantVal *resource.Quantity) float64 {
 	scale := decVal.Scale()
 	floatVal := float64(unscaledVal) * math.Pow10(-1*int(scale))
 	return floatVal
+}
+
+// encode the given url to support unicode
+func EncodeUrl(urlPath string) (string, error) {
+	// encode the url so that it can accept unicode
+	urlObj, err := url.Parse(urlPath)
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("Malformed URL: %v. %v", urlPath, err))
+	}
+	urlObj.RawQuery = urlObj.Query().Encode()
+	return urlObj.String(), nil
 }

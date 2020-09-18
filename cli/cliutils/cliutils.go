@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1049,21 +1048,20 @@ func createRequestBody(body interface{}, apiMsg string) (io.Reader, int, int) {
 }
 
 // invoke rest api call with retry
-func InvokeRestApi(httpClient *http.Client, method string, urlPath string, credentials string, body interface{}, service string, apiMsg string) *http.Response {
+func InvokeRestApi(httpClient *http.Client, method string, url string, credentials string, body interface{}, service string, apiMsg string) *http.Response {
+
+	// get message printer
+	msgPrinter := i18n.GetMessagePrinter()
 
 	// encode the url so that it can accept unicode
-	urlObj, errUrl := url.Parse(urlPath)
+	urlUnicode, errUrl := cutil.EncodeUrl(url)
 	if errUrl != nil {
-		Fatal(CLI_INPUT_ERROR, fmt.Sprintf("Malformed URL: %v. %v", urlPath, errUrl))
+		Fatal(CLI_INPUT_ERROR, msgPrinter.Sprintf("Unable to encode url. %v", errUrl))
 	}
-	urlObj.RawQuery = urlObj.Query().Encode()
 
 	if err := TrustIcpCert(httpClient); err != nil {
 		Fatal(FILE_IO_ERROR, err.Error())
 	}
-
-	// get message printer
-	msgPrinter := i18n.GetMessagePrinter()
 
 	// get retry count and retry interval from env
 	maxRetries, retryInterval, err := GetHttpRetryParameters(5, 2)
@@ -1106,7 +1104,7 @@ func InvokeRestApi(httpClient *http.Client, method string, urlPath string, crede
 		}
 
 		// Create the request and run it
-		req, err := http.NewRequest(method, urlObj.String(), requestBody)
+		req, err := http.NewRequest(method, urlUnicode, requestBody)
 		if err != nil {
 			Fatal(HTTP_ERROR, msgPrinter.Sprintf("%s new request failed: %v", apiMsg, err))
 		}

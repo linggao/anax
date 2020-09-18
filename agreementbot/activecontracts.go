@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/open-horizon/anax/agreementbot/persistence"
 	"github.com/open-horizon/anax/config"
+	"github.com/open-horizon/anax/cutil"
 	"net/http"
 	"os"
 	"time"
@@ -113,7 +114,14 @@ func ActiveAgreementsContains(activeAgreements []string, agreement persistence.A
 }
 
 func Invoke_rest(client *http.Client, method string, url string, user string, pw string, body []byte, outstruct interface{}) error {
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(body))
+
+	// encode the url so that it can accept unicode
+	urlUnicode, err := cutil.EncodeUrl(url)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Unable to encode url. %v", err))
+	}
+
+	req, err := http.NewRequest(method, urlUnicode, bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	if user != "" && pw != "" {
 		req.SetBasicAuth(user, pw)
