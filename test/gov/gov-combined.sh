@@ -17,7 +17,9 @@ function set_exports {
     export HZN_AGENT_PORT=8510
     export ANAX_API="http://localhost:${HZN_AGENT_PORT}"
     export EXCH="${EXCH_APP_HOST}"
-    export HZN_MGMT_HUB_CERT_PATH="/certs/css.crt"
+    if [ ${CERT_LOC} -eq "1" ]; then
+      export HZN_MGMT_HUB_CERT_PATH="/certs/css.crt"
+    fi
 
     if [[ $TEST_DIFF_ORG -eq 1 ]]; then
       export USER=useranax1
@@ -75,7 +77,7 @@ function run_delete_loops {
       else
         ORG_ID=${DEVICE_ORG} ADMIN_AUTH=${admin_auth} ./verify_agreements.sh &
       fi
-    else
+    elseƒ
       echo -e "Verifying policy based workload deployment"
       echo -e "No cancellation setting is $NOCANCEL"
       if [ "$NOCANCEL" != "1" ]; then
@@ -203,7 +205,11 @@ then
   export ANAX_API="http://localhost:${HZN_AGENT_PORT}"
   export EXCH="${EXCH_APP_HOST}"
   export TOKEN="abcdefg"
-  export HZN_MGMT_HUB_CERT_PATH="/certs/css.crt"
+
+  if [ ${CERT_LOC} -eq "1" ]; then
+    export HZN_MGMT_HUB_CERT_PATH="/certs/css.crt"
+  fi
+
   if [[ $TEST_DIFF_ORG -eq 1 ]]; then
     export USER=useranax1
     export PASS=useranax1pw
@@ -238,48 +244,41 @@ then
 fi
 
 echo -e "No agbot setting is $NOAGBOT"
+HZN_AGBOT_API=${AGBOT_API}
 if [ "$NOAGBOT" != "1" ] && [ "$TESTFAIL" != "1" ]
 then
   if [ "${EXCH_APP_HOST}" = "http://exchange-api:8080/v1" ]; then
-    # Start the agbot
-    su - agbotuser -c "mkdir -p /home/agbotuser/policy.d"
-    su - agbotuser -c "mkdir -p /home/agbotuser/policy2.d"
-    su - agbotuser -c "mkdir -p /home/agbotuser/.colonus"
-    su - agbotuser -c "mkdir -p /home/agbotuser/keys"
-    export HZN_VAR_BASE=/home/agbotuser
-
-    # create cert and key for the local agbot secure api
-    openssl req -newkey rsa:4096 -nodes -sha256 -x509 -keyout /home/agbotuser/keys/agbotapi.key -days 365 \
-      -out /home/agbotuser/keys/agbotapi.crt \
-      -subj "/C=US/ST=NY/L=New York/O=e2edev@somecomp.com/CN=localhost"
-    chmod +r /home/agbotuser/keys/agbotapi.key
 
     if [ "$OLDAGBOT" == "1" ]
     then
       echo "Starting the OLD Agreement Bot 1."
-      su agbotuser -c "/usr/bin/old-anax -v=5 -alsologtostderr=true -config /etc/agbot/agbot.config >/tmp/agbot.log 2>&1 &"
-    else
-      echo "Starting Agreement Bot 1."
-      su agbotuser -c "/usr/local/bin/anax -v=5 -alsologtostderr=true -config /etc/agbot/agbot.config >/tmp/agbot.log 2>&1 &"
+      # Start the agbot
+      su - agbotuser -c "mkdir -p /home/agbotuser/policy.d"
+      su - agbotuser -c "mkdir -p /home/agbotuser/policy2.d"
+      su - agbotuser -c "mkdir -p /home/agbotuser/.colonus"
+      su - agbotuser -c "mkdir -p /home/agbotuser/keys"
+      export HZN_VAR_BASE=/home/agbotuser
 
-      if [ "$MULTIAGBOT" == "1" ]; then
-        sleep 5
-        echo "Starting Agreement Bot 2."
-        su agbotuser -c "/usr/local/bin/anax -v=5 -alsologtostderr=true -config /etc/agbot/agbot2.config >/tmp/agbot2.log 2>&1 &"
-      fi
+      # create cert and key for the local agbot secure api
+      openssl req -newkey rsa:4096 -nodes -sha256 -x509 -keyout /home/agbotuser/keys/agbotapi.key -days 365 \
+        -out /home/agbotuser/keys/agbotapi.crt \
+        -subj "/C=US/ST=NY/L=New York/O=e2edev@somecomp.com/CN=localhost"
+      chmod +r /home/agbotuser/keys/agbotapi.key
+      su agbotuser -c "/usr/bin/old-anax -v=5 -alsologtostderr=true -config /etc/agbot/agbot.config >/tmp/agbot.log 2>&1 &"
     fi
 
     sleep 5
 
     # Check that the agbot is still alive
-    if ! curl -sSL http://localhost:8082/agreement > /dev/null; then
+    if ! curl -sSL ${AGBOT_API}/agreement > /dev/null; then
       echo "Agreement Bot 1 startup failure."
       TESTFAIL="1"
       exit 1
     fi
 
     if [ "$MULTIAGBOT" == "1" ]; then
-      if ! curl -sSL http://localhost:8084/agreement > /dev/null; then
+      # TODO: ask all-in-one create second agbot in Makefile
+      if ! curl -sSL ${AGBOT2_API}/agreement > /dev/null; then
         echo "Agreement Bot 2 startup failure."
         TESTFAIL="1"
         exit 1

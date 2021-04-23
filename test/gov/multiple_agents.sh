@@ -16,13 +16,15 @@ function startMultiAgents {
   echo -e "${PREFIX} userinput is: $ui"
   echo "$ui" > $UIFILE
 
-  EX_IP_GATEWAY=$(docker inspect exchange-api | jq -r '.[].NetworkSettings.Networks.e2edev_test_network.Gateway')
-  CSS_IP_GATEWAY=$(docker inspect css-api | jq -r '.[].NetworkSettings.Networks.e2edev_test_network.Gateway')
+  EX_IP_GATEWAY=$(docker inspect exchange-api | jq -r ".[].NetworkSettings.Networks.${DOCKER_TEST_NETWORK}.Gateway")
+  CSS_IP_GATEWAY=$(docker inspect css-api | jq -r ".[].NetworkSettings.Networks.${DOCKER_TEST_NETWORK}.Gateway")
   EX_HOST_PORT=$(docker inspect exchange-api | jq -r '.[].NetworkSettings.Ports."8080/tcp"[].HostPort')
   CSS_HOST_PORT=$(docker inspect css-api | jq -r '.[].NetworkSettings.Ports."9443/tcp"[].HostPort')
 
   # set css certs for the agent container
-  cat /certs/css.crt > /tmp/css.crt
+  if [ ${CERT_LOC} -eq "1" ]; then
+    cat /certs/css.crt > /tmp/css.crt
+  fi
 
   counter=0
   while [ ${counter} -lt ${MUL_AGENTS} ]; do
@@ -33,9 +35,11 @@ function startMultiAgents {
     echo "HZN_EXCHANGE_URL=http://$EX_IP_GATEWAY:$EX_HOST_PORT/v1" > /tmp/horizon
     echo "HZN_FSS_CSSURL=${CSS_URL}" >> /tmp/horizon
     echo "HZN_DEVICE_ID=anaxdevice${device_num}" >> /tmp/horizon
-    echo "HZN_MGMT_HUB_CERT_PATH=/tmp/css.crt" >> /tmp/horizon
     echo "HZN_AGENT_PORT=${agent_port}" >> /tmp/horizon
-    echo "E2E_NETWORK=e2edev_test_network" >> /tmp/horizon
+    echo -e "E2E_NETWORK=$DOCKER_TEST_NETWORK" >> /tmp/horizon
+    if [ ${CERT_LOC} -eq "1" ]; then
+      echo "HZN_MGMT_HUB_CERT_PATH=/tmp/css.crt" >> /tmp/horizon
+    fi
 
     # start agent container
     echo "${PREFIX} Start agent container horizon${horizon_num} ..."
