@@ -102,7 +102,16 @@ fi
 EX_IP=${EX_IP} CSS_IP=${CSS_IP} envsubst < "${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/horizon.env" > "${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/horizon"
 if [ $? -ne 0 ]; then echo "Failure configuring agent env var file"; exit 1; fi
 
-ARCH=${ARCH} envsubst < "${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/deployment.yaml.tmpl" > "${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/deployment.yaml"
+if [ ${CERT_LOC} -eq "1" ]; then
+	depl_file="${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/deployment.yaml.tmpl"
+else
+	# remove HZN_MGMT_HUB_CERT_PATH from the horizon env file
+	sed -i '/HZN_MGMT_HUB_CERT_PATH/d' ${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/horizon
+
+	depl_file="${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/deployment_nocert.yaml.tmpl"
+fi
+# create deployment.yaml file
+ARCH=${ARCH} envsubst < ${depl_file} > "${E2EDEVTEST_TEMPFS}/etc/agent-in-kube/deployment.yaml"
 if [ $? -ne 0 ]; then echo "Failure configuring k8s agent deployment template file"; exit 1; fi
 
 echo "Enable kube dns"

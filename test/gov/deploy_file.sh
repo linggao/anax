@@ -67,7 +67,6 @@ EOF
 
 if [ "${3}" == "IBM" ]; then
     # deploy public object to IBM using exchange root credentials
-    echo -e "ADDM: echo \"$resmeta\" | curl -sLX PUT -w \"%{http_code}\" $CERT_VAR -u root/root:${EXCH_ROOTPW} \"${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}\" --data @-"
     ADDM=$(echo "$resmeta" | curl -sLX PUT -w "%{http_code}" $CERT_VAR -u root/root:${EXCH_ROOTPW} "${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}" --data @-)
 
     if [ "$ADDM" != "204" ]
@@ -77,7 +76,6 @@ if [ "${3}" == "IBM" ]; then
         exit -1
     fi
 
-    echo -e "ADDF: curl -sLX PUT -w \"%{http_code}\" $CERT_VAR -u root/root:${EXCH_ROOTPW} --header 'Content-Type:application/octet-stream' \"${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}/data\" --data-binary @${1}"
     ADDF=$(curl -sLX PUT -w "%{http_code}" $CERT_VAR -u root/root:${EXCH_ROOTPW} --header 'Content-Type:application/octet-stream' "${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}/data" --data-binary @${1})
 
     if [ "$ADDF" == "204" ]
@@ -97,7 +95,6 @@ else
         admin_pw="e2edevadminpw"
     fi
 
-  echo -e "ADDN: echo \"$resmeta\" | curl -sLX PUT -w \"%{http_code}\" $CERT_VAR -u ${3}/${admin_user}:${admin_pw} \"${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}\" --data @-"
   ADDM=$(echo "$resmeta" | curl -sLX PUT -w "%{http_code}" $CERT_VAR -u ${3}/${admin_user}:${admin_pw} "${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}" --data @-)
 
   if [ "$ADDM" != "204" ]
@@ -107,7 +104,6 @@ else
     exit -1
   fi
   
-  echo -e "ADDF: curl -sLX PUT -w \"%{http_code}\" $CERT_VAR -u ${3}/${admin_user}:${admin_pw} --header 'Content-Type:application/octet-stream' \"${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}/data\" --data-binary @${1}"
   ADDF=$(curl -sLX PUT -w "%{http_code}" $CERT_VAR -u ${3}/${admin_user}:${admin_pw} --header 'Content-Type:application/octet-stream' "${CSS_URL}/api/v1/objects/${3}/${4}/${FILENAME}/data" --data-binary @${1})
 
   if [ "$ADDF" == "204" ]
