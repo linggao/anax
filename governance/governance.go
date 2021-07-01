@@ -1505,13 +1505,17 @@ func (w *GovernanceWorker) RecordReply(proposal abstractprotocol.Proposal, proto
 		// The workload config we have might be from a lower version of the workload. Go to the exchange and
 		// get the metadata for the version we are running and then add in any unset default user inputs.
 		var serviceDef *exchange.ServiceDefinition
-		if _, sDef, _, err := exchange.GetHTTPServiceResolverHandler(w)(workload.WorkloadURL, workload.Org, workload.Version, workload.Arch); err != nil {
-			return fmt.Errorf("Received error querying exchange for service metadata: %v/%v, error %v", workload.Org, workload.WorkloadURL, err)
+		serviceId := ""
+		if _, sDef, allIDs, err := exchange.GetHTTPServiceResolverHandler(w)(workload.WorkloadURL, workload.Org, workload.Version, workload.Arch); err != nil {
+			return fmt.Errorf(logString(fmt.Sprintf("Received error querying exchange for service metadata: %v/%v, error %v", workload.Org, workload.WorkloadURL, err)))
 		} else if sDef == nil {
-			return fmt.Errorf("Cound not find service metadata for %v/%v.", workload.Org, workload.WorkloadURL)
+			return fmt.Errorf(logString(fmt.Sprintf("Cound not find service metadata for %v/%v.", workload.Org, workload.WorkloadURL)))
 		} else {
 			serviceDef = sDef
 			sDef.PopulateDefaultUserInput(envAdds)
+			if allIDs != nil && len(allIDs) > 0 {
+				serviceId = allIDs[0]
+			}
 		}
 
 		cutil.SetPlatformEnvvars(envAdds,
@@ -1559,6 +1563,27 @@ func (w *GovernanceWorker) RecordReply(proposal abstractprotocol.Proposal, proto
 			persistence.NewMessageMeta(EL_GOV_START_WORKLOAD_SVC, ag.RunningWorkload.Org, ag.RunningWorkload.URL),
 			persistence.EC_START_SERVICE,
 			*ag)
+
+		// create microservice def and instance for this agreement
+		if w.deviceType == persistence.DEVICE_TYPE_DEVICE {
+			var msdef *persistence.MicroserviceDefinition
+			var err error
+			msFilters := []persistence.MSFilter{persistence.UrlOrgVersionMSFilter(serviceDef.URL, exchange.GetOrg(serviceId), serviceDef.Version), persistence.UnarchivedMSFilter()}
+			if msdefs, err := persistence.FindMicroserviceDefs(w.db, msFilters); err != nil {
+				return fmt.Errorf(logString(fmt.Sprintf("Error finding service definition from the local db for %v. %v", serviceId, err)))
+			} else if msdefs == nil || len(msdefs) == 0 {
+				if msdef, err = microservice.CreateMicroserviceDefWithServiceDef(w.db, serviceDef, serviceId); err != nil {
+					return fmt.Errorf(logString(fmt.Sprintf("failed to create service definition for %v for agreement %v: %v", serviceId, proposal.AgreementId(), err)))
+				}
+			} else {
+				msdef = &msdefs[0]
+			}
+			msinst, err := persistence.AgreementToMicroserviceInstance(w.db, ag, msdef.Id, true)
+			if err != nil {
+				return fmt.Errorf(logString(fmt.Sprintf("failed to create service instance for %v for agreement %v: %v", serviceId, proposal.AgreementId(), err)))
+			}
+			lc.MSIntanceKey = msinst.GetKey()
+		}
 
 		w.BaseWorker.Manager.Messages <- events.NewAgreementMessage(events.AGREEMENT_REACHED, lc)
 

@@ -43,11 +43,11 @@ func NewAPIListener(name string, config *config.HorizonConfig, db persistence.Ag
 			Messages: messages,
 		},
 
-		name:       name,
-		db:         db,
-		EC:         worker.NewExchangeContext(config.AgreementBot.ExchangeId, config.AgreementBot.ExchangeToken, config.AgreementBot.ExchangeURL, config.GetAgbotCSSURL(), config.Collaborators.HTTPClientFactory),
-		em:         events.NewEventStateManager(),
-		configFile: configFile,
+		name:           name,
+		db:             db,
+		EC:             worker.NewExchangeContext(config.AgreementBot.ExchangeId, config.AgreementBot.ExchangeToken, config.AgreementBot.ExchangeURL, config.GetAgbotCSSURL(), config.Collaborators.HTTPClientFactory),
+		em:             events.NewEventStateManager(),
+		configFile:     configFile,
 		secretProvider: s,
 	}
 

@@ -538,6 +538,7 @@ type MicroserviceInstance struct {
 	CurrentRetryCount    uint                           `json:"current_retry_count"`
 	RetryStartTime       uint64                         `json:"retry_start_time"`
 	EnvVars              map[string]string              `json:"env_vars"`
+	TopLevelService      bool                           `json:"top_level_service"`
 }
 
 func (w MicroserviceInstance) String() string {
@@ -561,10 +562,11 @@ func (w MicroserviceInstance) String() string {
 		"CurrentRetryCount: %v, "+
 		"RetryStartTime: %v, "+
 		"EnvVars: %v",
+		"TopLevelService: %v",
 		w.SpecRef, w.Org, w.Version, w.Arch, w.InstanceId, w.Archived, w.InstanceCreationTime,
 		w.ExecutionStartTime, w.ExecutionFailureCode, w.ExecutionFailureDesc,
 		w.CleanupStartTime, w.AssociatedAgreements, w.MicroserviceDefId, w.ParentPath, w.AgreementLess,
-		w.MaxRetries, w.MaxRetryDuration, w.CurrentRetryCount, w.RetryStartTime, w.EnvVars)
+		w.MaxRetries, w.MaxRetryDuration, w.CurrentRetryCount, w.RetryStartTime, w.EnvVars, w.TopLevelService)
 }
 
 // create a unique name for a microservice def
@@ -624,8 +626,7 @@ func (m *MicroserviceInstance) GetDirectParents() []ServiceInstancePathElement {
 }
 
 // create a new microservice instance and save it to db.
-func NewMicroserviceInstance(db *bolt.DB, ref_url string, org string, version string, msdef_id string, dependencyPath []ServiceInstancePathElement) (*MicroserviceInstance, error) {
-
+func NewMicroserviceInstance(db *bolt.DB, ref_url string, org string, version string, msdef_id string, dependencyPath []ServiceInstancePathElement, topLevel bool) (*MicroserviceInstance, error) {
 	if ref_url == "" || org == "" || version == "" {
 		return nil, errors.New("Microservice ref url id, org or version is empty, cannot persist")
 	}
@@ -660,15 +661,16 @@ func NewMicroserviceInstance(db *bolt.DB, ref_url string, org string, version st
 		MaxRetryDuration:     0,
 		CurrentRetryCount:    1, // the original execution is counted as the first one.
 		RetryStartTime:       0,
+		TopLevelService:      topLevel,
 	}
 
 	return saveMicroserviceInstance(db, new_inst)
 }
 
 // Create an microservice instance object out of an agreement. The object is not be saved into the db.
-func AgreementToMicroserviceInstance(ag EstablishedAgreement, msdef_id string) *MicroserviceInstance {
+func AgreementToMicroserviceInstance(db *bolt.DB, ag *EstablishedAgreement, msdef_id string, save bool) (*MicroserviceInstance, error) {
 	sipe := NewServiceInstancePathElement(ag.RunningWorkload.URL, ag.RunningWorkload.Org, ag.RunningWorkload.Version)
-	return &MicroserviceInstance{
+	new_inst := &MicroserviceInstance{
 		SpecRef:              ag.RunningWorkload.URL,
 		Org:                  ag.RunningWorkload.Org,
 		Version:              ag.RunningWorkload.Version,
@@ -683,6 +685,13 @@ func AgreementToMicroserviceInstance(ag EstablishedAgreement, msdef_id string) *
 		AssociatedAgreements: []string{ag.CurrentAgreementId},
 		MicroserviceDefId:    msdef_id,
 		ParentPath:           [][]ServiceInstancePathElement{[]ServiceInstancePathElement{*sipe}},
+		TopLevelService:      true,
+	}
+
+	if save {
+		return saveMicroserviceInstance(db, new_inst)
+	} else {
+		return new_inst, nil
 	}
 }
 

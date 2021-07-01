@@ -86,7 +86,7 @@ func (w *GovernanceWorker) StartMicroservice(ms_key string, agreementId string, 
 			if isRetry {
 				mi = msinst_given
 			} else {
-				mi, err1 = persistence.NewMicroserviceInstance(w.db, msdef.SpecRef, msdef.Org, msdef.Version, ms_key, dependencyPath)
+				mi, err1 = persistence.NewMicroserviceInstance(w.db, msdef.SpecRef, msdef.Org, msdef.Version, ms_key, dependencyPath, false)
 				if err1 != nil {
 					return nil, fmt.Errorf(logString(fmt.Sprintf("Error persisting service instance for %v/%v %v %v.", msdef.Org, msdef.SpecRef, msdef.Version, ms_key)))
 				}
@@ -165,7 +165,7 @@ func (w *GovernanceWorker) StartMicroservice(ms_key string, agreementId string, 
 			if isRetry {
 				ms_instance = msinst_given
 			} else {
-				ms_instance, err1 = persistence.NewMicroserviceInstance(w.db, msdef.SpecRef, msdef.Org, msdef.Version, ms_key, dependencyPath)
+				ms_instance, err1 = persistence.NewMicroserviceInstance(w.db, msdef.SpecRef, msdef.Org, msdef.Version, ms_key, dependencyPath, false)
 				if err1 != nil {
 					return nil, fmt.Errorf(logString(fmt.Sprintf("Error persisting service instance for %v/%v %v %v.", msdef.Org, msdef.SpecRef, msdef.Version, ms_key)))
 				}

@@ -2700,7 +2700,11 @@ func (b *ContainerWorker) findParentContainersForService(msinst_key string) ([]d
 		return nil, errors.New(fmt.Sprintf("unable to read active agreements from db, error %v", err))
 	} else {
 		for _, ag := range ags {
-			top_level_msinsts = append(top_level_msinsts, *persistence.AgreementToMicroserviceInstance(ag, ""))
+			if inst, err := persistence.AgreementToMicroserviceInstance(b.db, &ag, "", false); err != nil {
+				return nil, errors.New(fmt.Sprintf("unable to create service instance from agreement %v, error %v", ag, err))
+			} else {
+				top_level_msinsts = append(top_level_msinsts, *inst)
+			}
 		}
 	}
 

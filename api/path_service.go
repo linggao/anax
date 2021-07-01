@@ -24,12 +24,6 @@ func FindServicesForOutput(pm *policy.PolicyManager,
 		return nil, errors.New(fmt.Sprintf("unable to read service instances, error %v", err))
 	}
 
-	// Get all the agreement (top-level) services so that we can display them in the instances section.
-	agInsts, err := persistence.FindEstablishedAgreementsAllProtocols(db, policy.AllAgreementProtocols(), []persistence.EAFilter{})
-	if err != nil {
-		return nil, errors.New(fmt.Sprintf("unable to read agreement services, error %v", err))
-	}
-
 	// Get all the service definitions so that we can show them in the definitions section.
 	msdefs, err := persistence.FindMicroserviceDefs(db, []persistence.MSFilter{})
 	if err != nil {
@@ -58,19 +52,6 @@ func FindServicesForOutput(pm *policy.PolicyManager,
 				return nil, errors.New(fmt.Sprintf("unable to get docker container info, error %v", err))
 			}
 			wrap.Instances[activeKey] = append(wrap.Instances[activeKey], NewMicroserviceInstanceOutput(msinst, &containers))
-		}
-	}
-
-	// Iterate through each agreement service instance and generate the output object for each one.
-	for _, agInst := range agInsts {
-		if agInst.Archived {
-			wrap.Instances[archivedKey] = append(wrap.Instances[archivedKey], NewAgreementServiceInstanceOutput(&agInst, nil))
-		} else {
-			containers, err := GetWorkloadContainers(config.Edge.DockerEndpoint, agInst.CurrentAgreementId)
-			if err != nil {
-				return nil, errors.New(fmt.Sprintf("unable to get docker container info, error %v", err))
-			}
-			wrap.Instances[activeKey] = append(wrap.Instances[activeKey], NewAgreementServiceInstanceOutput(&agInst, &containers))
 		}
 	}
 
