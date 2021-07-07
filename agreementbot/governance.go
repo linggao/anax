@@ -259,7 +259,7 @@ func (w *AgreementBotWorker) GovernAgreements() int {
 
 										detailBytes, err := json.Marshal(details)
 										if err != nil {
-											glog.Errorf(logString(fmt.Sprintf("error marshalling secret details %v for policy %v, service %v/%v %v, error: %v", secretName, ag.PolicyName, err)))
+											glog.Errorf(logString(fmt.Sprintf("error marshalling secret details %v for policy %v, error: %v", secretName, ag.PolicyName, err)))
 											continue
 										}
 
